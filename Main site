@@ -1,0 +1,777 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>PopShop — colorful mobile shop</title>
+<meta name="description" content="Colorful, mobile-first shop page with owner-only edit mode" />
+<style>
+  :root{
+    --bg:#0f1020;
+    --card:#111125;
+    --muted:#9aa0b1;
+    --accent1:#ff7aa2;
+    --accent2:#6be6ff;
+    --glass: rgba(255,255,255,0.06);
+    --glass-2: rgba(255,255,255,0.03);
+    --success:#33d69f;
+    --danger:#ff6b6b;
+    --radius:14px;
+    --shadow: 0 8px 20px rgba(2,6,23,0.6);
+    --bright-shadow: 0 6px 18px rgba(107,230,255,0.08);
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  }
+
+  /* Page layout */
+  html,body{height:100%}
+  body{
+    margin:0;
+    background: linear-gradient(180deg,#071028 0%, #0b0b16 100%);
+    color: #e6eef8;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+    padding: 16px;
+    display:flex;
+    flex-direction:column;
+    min-height:100vh;
+    gap:12px;
+  }
+
+  header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+  }
+
+  .brand{
+    display:flex;
+    gap:10px;
+    align-items:center;
+  }
+
+  .logo {
+    width:44px;height:44px;border-radius:10px;
+    background: linear-gradient(135deg,var(--accent1),var(--accent2));
+    display:grid;place-items:center;font-weight:700;color:#071024;
+    box-shadow: var(--bright-shadow);
+    transform: translateZ(0);
+  }
+
+  h1{margin:0;font-size:18px;line-height:1}
+  p.lead{margin:0;font-size:12px;color:var(--muted)}
+
+  .controls{display:flex;gap:8px;align-items:center;}
+  .icon-btn{
+    background:var(--glass);
+    border:0;padding:10px;border-radius:12px;display:grid;place-items:center;
+    color:var(--accent2);cursor:pointer;border:1px solid rgba(255,255,255,0.02);
+  }
+
+  /* Product grid */
+  .grid{
+    display:grid;
+    gap:12px;
+    grid-template-columns: repeat(2, minmax(0,1fr));
+  }
+
+  /* Card */
+  .card{
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border-radius: var(--radius);
+    padding:12px;
+    box-shadow: var(--shadow);
+    border: 1px solid rgba(255,255,255,0.03);
+    overflow: hidden;
+    position: relative;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    min-height:180px;
+  }
+
+  .card .top{
+    display:flex;
+    gap:10px;
+    align-items:flex-start;
+  }
+
+  .art{
+    width:74px;height:74px;border-radius:12px;flex-shrink:0;
+    display:grid;place-items:center;
+    color:#071024;font-weight:700;
+    box-shadow: 0 8px 20px rgba(2,6,23,0.6);
+  }
+
+  .meta{flex:1; display:flex;flex-direction:column; gap:6px;}
+  .title{font-weight:700;font-size:14px}
+  .price{font-weight:800;color:var(--accent2);font-size:15px}
+  .desc{font-size:12px;color:var(--muted);line-height:1.2}
+
+  .card .actions{display:flex;gap:8px;margin-top:auto;align-items:center;}
+
+  .btn{
+    cursor:pointer;border:0;padding:8px 12px;border-radius:12px;font-weight:700;
+    background:linear-gradient(90deg,var(--accent2),#9a6bff);
+    color:#071024; box-shadow: 0 6px 16px rgba(155,85,255,0.12);
+  }
+  .btn.ghost{background:transparent;color:var(--muted);border:1px solid rgba(255,255,255,0.03)}
+  .small{padding:6px 8px;font-size:13px;border-radius:10px}
+
+  /* Cart slide over */
+  .cart-panel{
+    position:fixed;right:14px;bottom:14px;width:88%;max-width:420px;
+    background:linear-gradient(180deg, rgba(11,12,20,0.96), rgba(7,8,20,0.98));
+    border-radius:16px;padding:12px;border:1px solid rgba(255,255,255,0.04);
+    box-shadow: 0 22px 60px rgba(1,6,24,0.7);
+    transform: translateY(0);
+    transition: transform 260ms ease, opacity 200ms;
+  }
+
+  .cart-list{display:flex;flex-direction:column;gap:10px;max-height:320px;overflow:auto;padding-right:6px}
+  .cart-row{display:flex;gap:8px;align-items:center}
+  .qty{display:inline-flex;gap:6px;align-items:center}
+
+  /* admin bar */
+  .admin-bar{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-top:6px}
+  .muted-small{font-size:12px;color:var(--muted)}
+
+  /* Footer */
+  footer{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .owner-btn{background:transparent;border:1px dashed rgba(255,255,255,0.03);padding:8px;border-radius:12px;color:var(--muted);font-size:13px}
+
+  /* modals */
+  .modal-backdrop{position:fixed;inset:0;background:linear-gradient(180deg, rgba(2,6,23,0.6), rgba(2,6,23,0.85));display:grid;place-items:center;padding:18px}
+  .modal{width:100%;max-width:520px;background:linear-gradient(180deg,#0b0f1a,#071028);border-radius:16px;padding:14px;border:1px solid rgba(255,255,255,0.03)}
+  .form-row{display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
+  input,textarea,select{background:var(--glass-2);border:1px solid rgba(255,255,255,0.03);color:inherit;padding:10px;border-radius:10px;outline:none}
+  textarea{min-height:80px;resize:vertical}
+
+  /* responsive */
+  @media(min-width:640px){
+    .grid{grid-template-columns: repeat(3,minmax(0,1fr))}
+  }
+  @media(min-width:900px){
+    body{padding:28px}
+    .grid{grid-template-columns: repeat(4,minmax(0,1fr))}
+  }
+
+  /* little flourishes */
+  .badge{padding:6px 8px;border-radius:999px;background:linear-gradient(90deg,var(--accent1),var(--accent2));color:#071024;font-weight:800;font-size:12px}
+  .muted{color:var(--muted)}
+  .hint{font-size:11px;color:var(--muted);margin-top:6px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="logo">PS</div>
+    <div>
+      <h1>PopShop</h1>
+      <p class="lead">Colorful, mobile-first shop — professional & poppy</p>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="cartToggle" class="icon-btn" title="Cart">
+      🛒 <span id="cartCount" style="margin-left:6px;font-weight:700;color:var(--accent2)">0</span>
+    </button>
+    <button id="searchBtn" class="icon-btn" title="Search">🔎</button>
+  </div>
+</header>
+
+<main style="flex:1; overflow:auto;">
+  <section style="margin-top:6px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <h2 style="margin:0;font-size:15px">Featured</h2>
+      <div class="muted-small">Secure checkout • Fast & simple</div>
+    </div>
+
+    <div id="productGrid" class="grid" aria-live="polite"></div>
+
+    <div class="hint">Tip: Owner -> click “Owner Login” to edit content, add products or export/import JSON.</div>
+  </section>
+</main>
+
+<!-- Cart Panel -->
+<div id="cartPanel" class="cart-panel" style="display:none;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <div style="display:flex;gap:8px;align-items:center">
+      <div class="badge">Cart</div>
+      <div class="muted-small" id="cartTotalHint">0 items</div>
+    </div>
+    <div><button id="checkoutBtn" class="btn small">Checkout</button></div>
+  </div>
+  <div class="cart-list" id="cartList"></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+    <div class="muted-small">Total</div>
+    <div style="font-weight:800;color:var(--accent2)" id="cartTotal">$0.00</div>
+  </div>
+</div>
+
+<!-- Owner & Footer -->
+<footer>
+  <div>
+    <div style="font-size:13px;color:var(--muted)">Built with ❤️ — PopShop</div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <button id="ownerBtn" class="owner-btn">Owner Login</button>
+    <button id="importBtn" class="owner-btn" style="display:none">Import</button>
+    <button id="exportBtn" class="owner-btn" style="display:none">Export</button>
+  </div>
+</footer>
+
+<!-- Modal container -->
+<div id="modalRoot" style="display:none;"></div>
+
+<script>
+/*
+  PopShop — single-file mobile shop with owner-only edit mode.
+  - Editable product list stored in localStorage under 'popshop.products'
+  - Cart stored under 'popshop.cart'
+  - Owner password protected client-side (SHA-256)
+  - Default owner password: "shopowner" (change it below BEFORE publishing)
+*/
+
+/* ---------- Configuration & Utilities ---------- */
+
+// DEFAULT OWNER PASSWORD (CHANGE ASAP).
+// For convenience this site uses a default. For serious usage, change the string below,
+// AND persist a hash to server or use real auth. THIS PASSWORD STORES AS A HASH IN THE CODE.
+const DEFAULT_OWNER_PW = 'shopowner'; // <--- change me before publishing
+
+// Hash the default password into a hex string (we compute on first-run and show instructions).
+// We will never store the plain password in localStorage; only a hash is used.
+async function sha256Hex(msg){
+  const enc = new TextEncoder().encode(msg);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', enc);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+// LocalStorage helpers
+const LS_KEYS = {
+  PRODUCTS: 'popshop.products.v1',
+  CART: 'popshop.cart.v1',
+  ADMIN_HASH: 'popshop.adminhash.v1'
+};
+
+function lsGet(key, fallback = null){
+  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
+  catch(e){ return fallback; }
+}
+function lsSet(key, val){
+  try { localStorage.setItem(key, JSON.stringify(val)); }
+  catch(e){ console.warn('lsSet error', e); }
+}
+
+/* ---------- Sample default products (first-run) ---------- */
+const DEFAULT_PRODUCTS = [
+  {
+    id: cryptoRandomId(),
+    title: "Neon Earbuds",
+    price: 29.99,
+    desc: "Crisp sound, neon glow — compact and comfy.",
+    colorFrom: "#ff7aa2",
+    colorTo: "#ffd36b",
+    art: svgDataURL(`<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><rect rx="16" width="120" height="120" fill="rgba(255,255,255,0.06)"/><circle cx="40" cy="60" r="22" fill="#fff"/><rect x="68" y="36" width="28" height="48" rx="8" fill="#fff"/></svg>`)
+  },
+  {
+    id: cryptoRandomId(),
+    title: "Sunrise Powerbank",
+    price: 44.00,
+    desc: "Tiny powerhouse with sunrise gradient — pockets love it.",
+    colorFrom: "#ffb88c",
+    colorTo: "#ff7ab6",
+    art: svgDataURL(`<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><rect rx="16" width="120" height="120" fill="rgba(255,255,255,0.03)"/><rect x="26" y="34" width="68" height="52" rx="8" fill="#fff"/><circle cx="60" cy="60" r="8" fill="#071024"/></svg>`)
+  },
+  {
+    id: cryptoRandomId(),
+    title: "Tiny Tripod",
+    price: 18.50,
+    desc: "Foldable tripod for steady phone shots — small, sturdy.",
+    colorFrom: "#6be6ff",
+    colorTo: "#9a6bff",
+    art: svgDataURL(`<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><rect rx="16" width="120" height="120" fill="rgba(255,255,255,0.03)"/><path d="M60 36 L46 84 L50 86 L60 46 L70 86 L74 84 Z" fill="#fff"/></svg>`)
+  }
+];
+
+/* ---------- Initialization ---------- */
+
+let PRODUCTS = lsGet(LS_KEYS.PRODUCTS, null);
+let CART = lsGet(LS_KEYS.CART, []);
+let ADMIN_HASH = lsGet(LS_KEYS.ADMIN_HASH, null); // stored hex string
+
+async function init(){
+  // ensure admin hash exists in localStorage (only hash, never plain password)
+  if(!ADMIN_HASH){
+    const defaultHash = await sha256Hex(DEFAULT_OWNER_PW);
+    ADMIN_HASH = defaultHash;
+    lsSet(LS_KEYS.ADMIN_HASH, ADMIN_HASH);
+    // note: we recommend replacing ADMIN_HASH in code with your own precomputed hash for security.
+  }
+
+  if(!PRODUCTS || !Array.isArray(PRODUCTS)){
+    PRODUCTS = DEFAULT_PRODUCTS;
+    lsSet(LS_KEYS.PRODUCTS, PRODUCTS);
+  }
+
+  if(!CART) CART = [];
+  renderProducts();
+  updateCartUI();
+  setupUI();
+}
+init();
+
+/* ---------- DOM rendering ---------- */
+
+const productGrid = document.getElementById('productGrid');
+const cartToggle = document.getElementById('cartToggle');
+const cartPanel = document.getElementById('cartPanel');
+const cartList = document.getElementById('cartList');
+const cartCount = document.getElementById('cartCount');
+const cartTotal = document.getElementById('cartTotal');
+const cartTotalHint = document.getElementById('cartTotalHint');
+const checkoutBtn = document.getElementById('checkoutBtn');
+const ownerBtn = document.getElementById('ownerBtn');
+const exportBtn = document.getElementById('exportBtn');
+const importBtn = document.getElementById('importBtn');
+const modalRoot = document.getElementById('modalRoot');
+
+function renderProducts(){
+  productGrid.innerHTML = '';
+  PRODUCTS.forEach(p => {
+    const el = document.createElement('article');
+    el.className = 'card';
+    el.innerHTML = `
+      <div class="top">
+        <div class="art" style="background: linear-gradient(135deg, ${p.colorFrom}, ${p.colorTo});">${inlineSVG(p.art)}</div>
+        <div class="meta">
+          <div class="title">${escapeHtml(p.title)}</div>
+          <div class="price">$${(p.price).toFixed(2)}</div>
+          <div class="desc">${escapeHtml(p.desc)}</div>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn addBtn">Add</button>
+        <button class="btn ghost small viewBtn">View</button>
+      </div>
+    `;
+    // add handlers
+    el.querySelector('.addBtn').onclick = () => { addToCart(p.id, 1); };
+    el.querySelector('.viewBtn').onclick = () => { openProductModal(p.id); };
+    productGrid.appendChild(el);
+  });
+}
+
+/* ---------- Cart logic ---------- */
+
+function updateCartUI(){
+  const totalQty = CART.reduce((s, it) => s + it.qty, 0);
+  const totalPrice = CART.reduce((s, it) => {
+    const prod = PRODUCTS.find(p => p.id === it.id);
+    return s + (prod ? prod.price * it.qty : 0);
+  }, 0);
+  cartCount.textContent = totalQty;
+  cartTotal.textContent = `$${totalPrice.toFixed(2)}`;
+  cartTotalHint.textContent = `${totalQty} item${totalQty!==1?'s':''}`;
+  renderCartList();
+  lsSet(LS_KEYS.CART, CART);
+}
+
+function renderCartList(){
+  cartList.innerHTML = '';
+  if(CART.length === 0){
+    cartList.innerHTML = `<div style="color:var(--muted);padding:8px">Your cart is empty — add something bright ✨</div>`;
+    return;
+  }
+  CART.forEach(row => {
+    const prod = PRODUCTS.find(p => p.id === row.id);
+    const item = document.createElement('div');
+    item.className = 'cart-row';
+    item.innerHTML = `
+      <div style="width:56px;height:56px;border-radius:10px;overflow:hidden;background:linear-gradient(135deg, ${prod.colorFrom}, ${prod.colorTo});display:grid;place-items:center">${inlineSVG(prod.art)}</div>
+      <div style="flex:1">
+        <div style="font-weight:700">${escapeHtml(prod.title)}</div>
+        <div style="font-size:12px;color:var(--muted)">${row.qty} × $${prod.price.toFixed(2)}</div>
+      </div>
+      <div class="qty">
+        <button class="small ghost dec">−</button>
+        <div style="min-width:22px;text-align:center;font-weight:700">${row.qty}</div>
+        <button class="small ghost inc">+</button>
+        <button class="small ghost" style="margin-left:6px;color:var(--danger)">✕</button>
+      </div>
+    `;
+    item.querySelector('.inc').onclick = () => { changeQty(row.id, row.qty+1); };
+    item.querySelector('.dec').onclick = () => { changeQty(row.id, Math.max(1, row.qty-1)); };
+    item.querySelector('.small.ghost[style*="✕"]')?.addEventListener('click', () => removeFromCart(row.id));
+    cartList.appendChild(item);
+  });
+}
+
+function addToCart(id, qty=1){
+  const existing = CART.find(c => c.id === id);
+  if(existing) existing.qty += qty;
+  else CART.push({id, qty});
+  updateCartUI();
+  showToast('Added to cart');
+}
+
+function changeQty(id, qty){
+  const idx = CART.findIndex(c => c.id === id);
+  if(idx === -1) return;
+  CART[idx].qty = qty;
+  updateCartUI();
+}
+
+function removeFromCart(id){
+  CART = CART.filter(c => c.id !== id);
+  updateCartUI();
+}
+
+checkoutBtn.onclick = () => {
+  if(CART.length === 0){ showToast("Cart is empty"); return; }
+  // simulate checkout
+  openModal(`<div style="padding:8px"><h3 style="margin-top:0">Checkout</h3>
+    <p class="muted-small">This demo performs a simulated checkout (no payments). Provide details below to confirm order.</p>
+    <div class="form-row"><input id="inpName" placeholder="Full name" /></div>
+    <div class="form-row"><input id="inpAddress" placeholder="Address or email" /></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button id="cancelCheckout" class="btn ghost">Cancel</button>
+      <button id="confirmCheckout" class="btn">Confirm</button>
+    </div>
+    </div>`, true);
+
+  document.getElementById('cancelCheckout').onclick = closeModal;
+  document.getElementById('confirmCheckout').onclick = () => {
+    const name = document.getElementById('inpName').value.trim();
+    const addr = document.getElementById('inpAddress').value.trim();
+    if(!name || !addr){ showToast("Please enter name & address"); return; }
+    // clear cart and show success
+    CART = [];
+    lsSet(LS_KEYS.CART, CART);
+    updateCartUI();
+    closeModal();
+    showToast("Order placed — thank you! (simulated)");
+  };
+};
+
+/* ---------- Product modal + Admin editing ---------- */
+
+function openProductModal(id){
+  const p = PRODUCTS.find(x => x.id === id);
+  if(!p) return;
+  const html = `
+    <div style="padding:8px">
+      <div style="display:flex;gap:12px;align-items:center">
+        <div style="width:84px;height:84px;border-radius:12px;overflow:hidden;background:linear-gradient(135deg, ${p.colorFrom}, ${p.colorTo});display:grid;place-items:center">${inlineSVG(p.art)}</div>
+        <div style="flex:1">
+          <div style="font-weight:900;font-size:16px">${escapeHtml(p.title)}</div>
+          <div style="color:var(--accent2);font-weight:800;margin-top:6px">$${p.price.toFixed(2)}</div>
+          <div style="color:var(--muted);margin-top:6px">${escapeHtml(p.desc)}</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button id="modalAdd" class="btn">Add to cart</button>
+        <button id="modalClose" class="btn ghost">Close</button>
+      </div>
+    </div>
+  `;
+  openModal(html, false);
+  document.getElementById('modalAdd').onclick = () => { addToCart(p.id,1); closeModal(); };
+  document.getElementById('modalClose').onclick = closeModal;
+}
+
+/* Admin / Owner UI */
+
+let isAdmin = false;
+
+function setupUI(){
+  cartToggle.onclick = () => {
+    cartPanel.style.display = cartPanel.style.display === 'none' ? 'block' : 'none';
+    if(cartPanel.style.display === 'block') cartPanel.scrollIntoView({behavior:'smooth'});
+  };
+
+  ownerBtn.onclick = async () => {
+    if(isAdmin){ // toggle off
+      exitAdminMode();
+      return;
+    }
+    // ask for password
+    const {value:pw} = await promptModal('Owner Login','Enter Owner Password');
+    if(!pw) return;
+    const hashed = await sha256Hex(pw);
+    if(hashed === ADMIN_HASH){
+      enterAdminMode();
+      showToast('Owner mode enabled');
+    } else {
+      showToast('Wrong password', true);
+    }
+  };
+
+  exportBtn.onclick = () => {
+    const payload = {
+      products: PRODUCTS.slice(),
+      exportedAt: new Date().toISOString()
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'popshop-products.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  importBtn.onclick = () => {
+    // open file input
+    const ip = document.createElement('input');
+    ip.type = 'file';
+    ip.accept = 'application/json';
+    ip.onchange = () => {
+      const f = ip.files[0];
+      const reader = new FileReader();
+      reader.onload = e => {
+        try {
+          const data = JSON.parse(e.target.result);
+          if(Array.isArray(data.products)){
+            PRODUCTS = data.products;
+            lsSet(LS_KEYS.PRODUCTS, PRODUCTS);
+            renderProducts();
+            showToast('Imported products');
+          } else showToast('Invalid JSON format', true);
+        } catch(err){
+          showToast('Import failed', true);
+        }
+      };
+      reader.readAsText(f);
+    };
+    ip.click();
+  };
+}
+
+/* admin mode actions */
+function enterAdminMode(){
+  isAdmin = true;
+  ownerBtn.textContent = 'Exit Owner';
+  exportBtn.style.display = 'inline-block';
+  importBtn.style.display = 'inline-block';
+  renderAdminBar();
+}
+
+function exitAdminMode(){
+  isAdmin = false;
+  ownerBtn.textContent = 'Owner Login';
+  exportBtn.style.display = 'none';
+  importBtn.style.display = 'none';
+  renderProducts(); // re-render without admin controls
+  // remove admin bar if present
+  const adminBars = document.querySelectorAll('.admin-bar');
+  adminBars.forEach(b => b.remove());
+}
+
+/* render admin edit controls on each card */
+function renderAdminBar(){
+  // re-render products with admin controls appended to each card
+  productGrid.innerHTML = '';
+  PRODUCTS.forEach((p, idx) => {
+    const el = document.createElement('article');
+    el.className = 'card';
+    el.innerHTML = `
+      <div class="top" style="align-items:flex-start">
+        <div class="art" style="background: linear-gradient(135deg, ${p.colorFrom}, ${p.colorTo});">${inlineSVG(p.art)}</div>
+        <div class="meta">
+          <div class="title">${escapeHtml(p.title)}</div>
+          <div class="price">$${(p.price).toFixed(2)}</div>
+          <div class="desc">${escapeHtml(p.desc)}</div>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn addBtn small">Add</button>
+        <button class="btn ghost small editBtn">Edit</button>
+        <button class="btn ghost small delBtn" style="color:var(--danger)">Delete</button>
+      </div>
+    `;
+    el.querySelector('.addBtn').onclick = () => addToCart(p.id,1);
+    el.querySelector('.editBtn').onclick = () => openEditModal(p.id);
+    el.querySelector('.delBtn').onclick = () => {
+      if(confirm('Delete product?')) {
+        PRODUCTS.splice(idx,1);
+        lsSet(LS_KEYS.PRODUCTS, PRODUCTS);
+        renderAdminBar();
+        showToast('Product deleted');
+      }
+    };
+    productGrid.appendChild(el);
+  });
+
+  // admin control panel (add product)
+  const adminControl = document.createElement('div');
+  adminControl.className = 'card';
+  adminControl.style.gridColumn = '1/-1';
+  adminControl.innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="flex:1">
+        <div style="font-weight:800;font-size:15px">Owner Controls</div>
+        <div class="muted-small">Add, edit or export your product list. Changes save to this browser.</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button id="addProductBtn" class="btn">Add Product</button>
+        <button id="reseedBtn" class="btn ghost">Reset Demo</button>
+      </div>
+    </div>
+  `;
+  productGrid.prepend(adminControl);
+  document.getElementById('addProductBtn').onclick = () => openEditModal();
+  document.getElementById('reseedBtn').onclick = () => {
+    if(confirm('Reset demo products? This will overwrite your current products.')) {
+      PRODUCTS = DEFAULT_PRODUCTS.slice();
+      lsSet(LS_KEYS.PRODUCTS, PRODUCTS);
+      renderAdminBar();
+      showToast('Demo reset');
+    }
+  };
+}
+
+/* Edit / Add Product Modal */
+function openEditModal(id = null){
+  // if id null -> add new
+  let p = { id: cryptoRandomId(), title:'New Product', price:9.99, desc:'Description', colorFrom:'#ff9a9e', colorTo:'#fad0c4', art: svgDataURL(`<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><rect rx="16" width="120" height="120" fill="rgba(255,255,255,0.03)"/></svg>`) };
+  if(id){
+    const found = PRODUCTS.find(x => x.id === id);
+    p = JSON.parse(JSON.stringify(found));
+  }
+  // form
+  const html = `
+    <div style="padding:8px">
+      <h3 style="margin-top:0">${id ? 'Edit Product' : 'Add Product'}</h3>
+      <div class="form-row"><label>Title</label><input id="p_title" value="${escapeHtmlAttr(p.title)}" /></div>
+      <div class="form-row"><label>Price (USD)</label><input id="p_price" type="number" step="0.01" value="${p.price}" /></div>
+      <div class="form-row"><label>Description</label><textarea id="p_desc">${escapeHtml(p.desc)}</textarea></div>
+      <div class="form-row"><label>Color From</label><input id="p_from" type="color" value="${p.colorFrom}" /></div>
+      <div class="form-row"><label>Color To</label><input id="p_to" type="color" value="${p.colorTo}" /></div>
+      <div class="form-row"><label>SVG Image (paste full &lt;svg&gt; ...)</label><textarea id="p_svg" placeholder="Paste raw &lt;svg&gt; markup">${decodeSVGDataURL(p.art)}</textarea></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button id="cancelEdit" class="btn ghost">Cancel</button>
+        <button id="saveEdit" class="btn">${id ? 'Save' : 'Add'}</button>
+      </div>
+    </div>
+  `;
+  openModal(html, true);
+  document.getElementById('cancelEdit').onclick = closeModal;
+  document.getElementById('saveEdit').onclick = () => {
+    const title = document.getElementById('p_title').value.trim();
+    const price = parseFloat(document.getElementById('p_price').value) || 0;
+    const desc = document.getElementById('p_desc').value.trim();
+    const colorFrom = document.getElementById('p_from').value;
+    const colorTo = document.getElementById('p_to').value;
+    const svgRaw = document.getElementById('p_svg').value.trim();
+    if(!title){ showToast('Title required', true); return; }
+    const newProd = { id: p.id, title, price, desc, colorFrom, colorTo, art: svgDataURL(svgRaw) };
+    const idx = PRODUCTS.findIndex(x => x.id === p.id);
+    if(idx === -1) PRODUCTS.unshift(newProd);
+    else PRODUCTS[idx] = newProd;
+    lsSet(LS_KEYS.PRODUCTS, PRODUCTS);
+    closeModal();
+    renderAdminBar();
+    showToast(id ? 'Product saved' : 'Product added');
+  };
+}
+
+/* ---------- Modal + small UI helpers ---------- */
+
+function openModal(innerHTML, allowBackdropClose=true){
+  modalRoot.style.display = 'block';
+  modalRoot.innerHTML = `
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal" role="dialog" aria-modal="true">${innerHTML}</div>
+  </div>`;
+  if(allowBackdropClose) document.getElementById('modalBackdrop').onclick = (e) => { if(e.target.id==='modalBackdrop') closeModal(); };
+}
+function closeModal(){ modalRoot.style.display = 'none'; modalRoot.innerHTML = ''; }
+
+function promptModal(title, label){
+  return new Promise(res => {
+    openModal(`<div style="padding:8px">
+      <h3 style="margin-top:0">${escapeHtml(title)}</h3>
+      <div class="form-row"><input id="pwInput" type="password" placeholder="${escapeHtml(label)}" /></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button id="cancelBtn" class="btn ghost">Cancel</button>
+        <button id="okBtn" class="btn">OK</button>
+      </div>
+    </div>`, true);
+    document.getElementById('cancelBtn').onclick = () => { closeModal(); res({value:null}); };
+    document.getElementById('okBtn').onclick = () => { const v = document.getElementById('pwInput').value; closeModal(); res({value:v}); };
+  });
+}
+
+/* tiny toast */
+let toastTimer = 0;
+function showToast(msg, isError=false){
+  clearTimeout(toastTimer);
+  let t = document.getElementById('__popshop_toast');
+  if(!t){ t = document.createElement('div'); t.id='__popshop_toast'; document.body.appendChild(t); }
+  t.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:18px;padding:10px 14px;border-radius:12px;font-weight:700;background:'+ (isError? 'var(--danger)':'var(--accent2)') +';color:#071024;box-shadow:var(--bright-shadow);';
+  t.textContent = msg;
+  t.style.opacity = '1';
+  toastTimer = setTimeout(()=> { t.style.opacity='0'; }, 2000);
+}
+
+/* small helpers */
+function escapeHtml(str){ return String(str).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function escapeHtmlAttr(s){ return escapeHtml(s).replace(/'/g,"&#39;"); }
+
+function cryptoRandomId(len=10){
+  const arr = new Uint8Array(len);
+  crypto.getRandomValues(arr);
+  return Array.from(arr).map(n => (n%36).toString(36)).join('');
+}
+
+/* svg helpers: encode & decode data URLs for inline SVG */
+function svgDataURL(svgText){
+  if(!svgText) svgText = '<svg xmlns="http://www.w3.org/2000/svg"></svg>';
+  // ensure xml header
+  const svg = svgText.trim().replace(/\n+/g,' ');
+  const encoded = encodeURIComponent(svg).replace(/'/g,'%27').replace(/"/g,'%22');
+  return `data:image/svg+xml;utf8,${encoded}`;
+}
+function decodeSVGDataURL(dataURL){
+  if(!dataURL) return '';
+  if(dataURL.startsWith('data:image/svg+xml')){
+    const firstComma = dataURL.indexOf(',');
+    return decodeURIComponent(dataURL.slice(firstComma+1));
+  }
+  return dataURL;
+}
+function inlineSVG(dataURL){
+  const svg = decodeSVGDataURL(dataURL);
+  // return trustable small markup for display
+  return svg || '';
+}
+
+/* small prompt openModal helper that returns value is above (promptModal) */
+
+/* ---------- Utilities: Escape + Admin hash change ---------- */
+
+async function setAdminPassword(newPlain){
+  // replace local admin hash
+  ADMIN_HASH = await sha256Hex(newPlain);
+  lsSet(LS_KEYS.ADMIN_HASH, ADMIN_HASH);
+}
+
+/* ---------- Bootstrapping notes for owner ---------- */
+(async function ownerNotes(){
+  // On first run show console note
+  if(!localStorage.getItem('__popshop_seen_owner_note')){
+    console.info('PopShop demo running. Default owner password is "shopowner". Change it by editing DEFAULT_OWNER_PW in the HTML and by calling setAdminPassword("your-new-password") from the console if needed.');
+    localStorage.setItem('__popshop_seen_owner_note','1');
+  }
+})();
+
+/* ---------- Tiny utility: decode dataURL when editing; show simple inline svg when rendering ---------- */
+
+/* ---------- End of script ---------- */
+</script>
+
+</body>
+</html>
